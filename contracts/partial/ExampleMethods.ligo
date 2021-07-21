@@ -1,6 +1,8 @@
 function example(
-  const _s              : storage_type)
+  const param           : example_param_type;
+  var s                 : storage_type)
                         : storage_type is
   block {
-    skip
-} with _s
+    if param = 1n then s.foo := 42n
+    else failwith("Example");
+} with s

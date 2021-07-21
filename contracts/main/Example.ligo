@@ -1,8 +1,9 @@
 #include "../partial/ExampleTypes.ligo"
 #include "../partial/ExampleMethods.ligo"
 
-type parameter_type is
-  | Example               of nat
+type parameter_type     is
+  | Example             of example_param_type
+  | Example_2           of example_param_type
 
 
 function main(
@@ -10,6 +11,7 @@ function main(
   const s               : storage_type)
                         : return is
   case action of
-    Example(_params)           -> (no_operations, example(s))
+    Example(params)           -> (no_operations, example(params, s))
+  | Example_2(params)         -> (no_operations, example(params, s))
 
   end
