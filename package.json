@@ -1,0 +1,42 @@
+{
+  "name": "s",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/repo.git"
+  },
+  "author": "e1",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/repo/issues"
+  },
+  "homepage": "https://github.com/repo#readme",
+  "engines": {
+    "node": "^14.17.1",
+    "yarn": "^1.22.10"
+  },
+  "dependencies": {
+    "@taquito/signer": "^9.1.1",
+    "@taquito/taquito": "^9.2.0",
+    "dotenv": "^10.0.0",
+    "fs-extra": "^10.0.0",
+    "yargs": "^17.0.1"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.2.18",
+    "@types/mocha": "^8.2.2",
+    "chai": "^4.3.4",
+    "mocha": "^9.0.0"
+  },
+  "scripts": {
+    "clean": "rm -rf ./builds/",
+    "migrate": "node scripts/cli.js migrate",
+    "compile": "yarn clean && node scripts/cli.js compile",
+    "start-sandbox": "docker run --rm --name dev-sandbox --detach -p 8732:20000 tqtezos/flextesa:20210602 flobox start",
+    "stop-sandbox": "docker kill dev-sandbox",
+    "test": "mocha 'tests/*.js' --timeout 150000"
+  },
+  "target": "ES6"
+}
