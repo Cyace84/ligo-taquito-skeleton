@@ -37,7 +37,7 @@ yarn test
 
 ``` 
 
-![image](https://user-images.githubusercontent.com/44075582/126523986-295e7d8a-9b4a-4330-a230-11488782e649.png)
+![image](https://user-images.githubusercontent.com/44075582/126524242-6fdd8cf3-a5b5-4143-b46f-97eb7a0a2e73.png)
 
 
 ```
