@@ -1,4 +1,16 @@
 # Description
+Edit for yourself:
+- package.json
+- /tests/
+- /contracts
+- /migrations
+- /storage
+
+```
+./storage - prod storage
+./tests/storage - dev storage
+
+```
 
 # Requirements
 
