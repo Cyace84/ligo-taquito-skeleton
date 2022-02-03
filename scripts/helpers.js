@@ -1,18 +1,23 @@
 require("dotenv").config();
+
 const { execSync } = require("child_process");
 const fs = require("fs");
 const { TezosToolkit } = require("@taquito/taquito");
 const { InMemorySigner } = require("@taquito/signer");
+const { confirmOperation } = require("./confirmation");
 const env = require("../env");
 
 const getLigo = isDockerizedLigo => {
   let path = "ligo";
+
   if (isDockerizedLigo) {
     path = `docker run -v $PWD:$PWD --rm -i ligolang/ligo:${env.ligoVersion}`;
+
     try {
       execSync(`${path}  --help`);
     } catch (err) {
       path = "ligo";
+
       execSync(`${path}  --help`);
     }
   } else {
@@ -20,9 +25,11 @@ const getLigo = isDockerizedLigo => {
       execSync(`${path}  --help`);
     } catch (err) {
       path = `docker run -v $PWD:$PWD --rm -i ligolang/ligo:${env.ligoVersion}`;
+
       execSync(`${path}  --help`);
     }
   }
+
   return path;
 };
 
@@ -40,15 +47,22 @@ const getMigrationsList = () => {
     .map(file => file.slice(0, file.length - 3));
 };
 
-const compile = async contract => {
+const compile = async (contract, format) => {
   const ligo = getLigo(true);
+  format = format || "json";
   const contracts = !contract ? getContractsList() : [contract];
   contracts.forEach(contract => {
-    const michelson = execSync(
-      `${ligo} compile-contract --michelson-format=json $PWD/${env.contractsDir}/${contract}.ligo main`,
-      { maxBuffer: 1024 * 500 },
-    ).toString();
+    let michelson;
     try {
+      michelson = execSync(
+        `${ligo} compile contract $PWD/${env.contractsDir}/${contract}.ligo -s pascaligo --michelson-format ${format} --protocol hangzhou`,
+        { maxBuffer: 1024 * 4000 },
+      ).toString();
+    } catch (e) {
+      console.log(e);
+    }
+
+    if (format == "json") {
       const artifacts = JSON.stringify(
         {
           michelson: JSON.parse(michelson),
@@ -62,8 +76,8 @@ const compile = async contract => {
         fs.mkdirSync(env.buildsDir);
       }
       fs.writeFileSync(`${env.buildsDir}/${contract}.json`, artifacts);
-    } catch (e) {
-      console.error(michelson);
+    } else {
+      fs.writeFileSync(`${env.contractsDir}/${contract}.tz`, michelson);
     }
   });
 };
@@ -80,28 +94,24 @@ const migrate = async (tezos, contract, storage) => {
       })
       .catch(e => {
         console.error(JSON.stringify(e));
+
         return { contractAddress: null };
       });
+
+    await confirmOperation(tezos, operation.hash);
+
     artifacts.networks[env.network] = { [contract]: operation.contractAddress };
+
     if (!fs.existsSync(env.buildsDir)) {
       fs.mkdirSync(env.buildsDir);
     }
+
     fs.writeFileSync(
       `${env.buildsDir}/${contract}.json`,
       JSON.stringify(artifacts, null, 2),
     );
-    await operation.confirmation();
+
     return operation.contractAddress;
-  } catch (e) {
-    console.error(e);
-  }
-};
-const getDeploydAddress = contract => {
-  try {
-    const artifacts = JSON.parse(
-      fs.readFileSync(`${env.buildsDir}/${contract}.json`),
-    );
-    return artifacts.networks[env.network][contract];
   } catch (e) {
     console.error(e);
   }
@@ -109,24 +119,24 @@ const getDeploydAddress = contract => {
 
 const runMigrations = async options => {
   try {
-    console.log(options);
     const migrations = getMigrationsList();
-    options.network = options.network || "development";
-    options.optionFrom = options.from || 0;
-    options.optionTo = options.to || migrations.length;
 
-    const networkConfig = env.networks[options.network];
+    const network = env.network;
+
+    const networkConfig = env.networks[network];
 
     const tezos = new TezosToolkit(networkConfig.rpc);
+
     tezos.setProvider({
       config: {
-        confirmationPollingTimeoutSecond: 500000,
+        confirmationPollingTimeoutSecond: env.confirmationPollingTimeoutSecond,
       },
-      rpc: networkConfig.rpc,
       signer: await InMemorySigner.fromSecretKey(networkConfig.secretKey),
     });
+
     for (const migration of migrations) {
       const execMigration = require(`../${env.migrationsDir}/${migration}.js`);
+
       await execMigration(tezos);
     }
   } catch (e) {
@@ -138,7 +148,6 @@ module.exports = {
   getLigo,
   getContractsList,
   getMigrationsList,
-  getDeploydAddress,
   compile,
   migrate,
   runMigrations,
